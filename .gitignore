@@ -1,6 +1,3 @@
 # Project exclude paths
-/auldfellas/target/
-/client/target/
-/core/target/
-/dodgydrivers/target/
-/girlpower/target/
+target
+.idea/vcs.xml

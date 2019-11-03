@@ -24,7 +24,7 @@ public class Receiver {
             ConnectionFactory factory =
                     new ActiveMQConnectionFactory("failover://tcp://"+host+":61616");
             Connection connection = factory.createConnection();
-            connection.setClientID("auldfellas");
+            connection.setClientID("girlpower");
             Session session = connection.createSession(false, Session.CLIENT_ACKNOWLEDGE);
             Queue queue = session.createQueue("QUOTATIONS");
             Topic topic = session.createTopic("APPLICATIONS");
