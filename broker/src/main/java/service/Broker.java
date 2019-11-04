@@ -7,15 +7,10 @@ import javax.jms.*;
 import javax.jms.Queue;
 import java.util.*;
 
-public class Broker implements BrokerService {
+public class Broker {
 
     static String host;
-    static long SEED_ID = 0;
     static Map<Long, ClientInfo> cache = new HashMap<>();
-    static LinkedList<Message> REQUESTS = new LinkedList<>();
-    private static Session session;
-    private static MessageProducer producer;
-    private static MessageConsumer consumer;
     private static Connection connection;
 
     public static void main(String[] args) {
@@ -29,70 +24,94 @@ public class Broker implements BrokerService {
                     new ActiveMQConnectionFactory("failover://tcp://" + host + ":61616");
             connection = factory.createConnection();
             connection.setClientID("broker");
-            session = connection.createSession(false, Session.CLIENT_ACKNOWLEDGE);
-            Queue queue = session.createQueue("QUOTATIONS");
-            Topic topic = session.createTopic("APPLICATIONS");
-            producer = session.createProducer(topic);
-            consumer = session.createConsumer(queue);
+            CbsThread cbsThread = new CbsThread();
+            SbcThread sbcThread = new SbcThread();
+            new Thread(cbsThread).start();
+            new Thread(sbcThread).start();
 
         } catch (JMSException e){
             System.out.println(e);
         }
     }
 
-    @Override
-    public List<Quotation> getQuotations(ClientInfo info) {
-        List<Quotation> quotations = new ArrayList<>();
-        try {
-            connection.start();
-            long t1 = System.currentTimeMillis();
-            while (true) {
-                long t2 = System.currentTimeMillis();
-                // 2s to timeout
-                if(t2-t1 > 2*1000){
-                    break;
-                } else {
+    //The thread Client -> Broker -> Services
+    public static class CbsThread implements Runnable{
+
+        @Override
+        public void run() {
+            try {
+                Session session = connection.createSession(false, Session.CLIENT_ACKNOWLEDGE);
+                Queue queue = session.createQueue("REQUEST");
+                Topic topic = session.createTopic("APPLICATIONS");
+                MessageProducer producer = session.createProducer(topic);
+                MessageConsumer consumer = session.createConsumer(queue);
+                connection.start();
+                while (true){
                     Message message = consumer.receive();
                     if (message instanceof ObjectMessage) {
                         Object content = ((ObjectMessage) message).getObject();
-                        if (content instanceof QuotationResponseMessage) {
-                            QuotationResponseMessage response = (QuotationResponseMessage) content;
-                            quotations.add(response.quotation);
+                        if (content instanceof QuotationRequestMessage) {
+                            QuotationRequestMessage request = (QuotationRequestMessage) content;
+                            producer.send(message);
+                            cache.put(request.id,request.info);
                         }
-                        message.acknowledge();
                     } else {
                         System.out.println("Unknown message type: " +
                                 message.getClass().getCanonicalName());
                     }
                 }
+            } catch (JMSException e){
+                System.out.println(e);
             }
-            connection.close();
-            REQUESTS.pop();
-        } catch (JMSException e){
-            System.out.println(e);
         }
-        return quotations;
     }
 
-    public ClientApplicationMessage getClientApplicationMessage(QuotationRequestMessage quotationRequest){
-        try {
-            Message request = session.createObjectMessage(quotationRequest);
-            cache.put(quotationRequest.id, quotationRequest.info);
-            REQUESTS.add(request);
-            while(true){
-                if (REQUESTS.getFirst()==request){
-                    producer.send(request);
-                    break;
-                } else {
-                    continue;
+    //The thread Services -> Broker -> Client
+    public static class SbcThread implements Runnable{
+
+        @Override
+        public void run() {
+            try {
+                Session session = connection.createSession(false, Session.CLIENT_ACKNOWLEDGE);
+                Queue queue = session.createQueue("QUOTATIONS");
+                Topic topic = session.createTopic("RESPONSE");
+                MessageProducer producer = session.createProducer(topic);
+                MessageConsumer consumer = session.createConsumer(queue);
+                connection.start();
+                while (true) {
+                    long t1 = System.currentTimeMillis();
+                    ArrayList<Quotation> quotations = new ArrayList<>();
+                    long id = -1;
+                    while (true) {
+                        long t2 = System.currentTimeMillis();
+                        if ((t2 - t1) > 2000) {
+                            break;
+                        } else {
+                            Message message = consumer.receive();
+                            if (message instanceof ObjectMessage) {
+                                Object content = ((ObjectMessage) message).getObject();
+                                if (content instanceof QuotationResponseMessage) {
+                                    QuotationResponseMessage request = (QuotationResponseMessage) content;
+                                    if ((id == -1) || (id == request.id)) {
+                                        message.acknowledge();
+                                        quotations.add(request.quotation);
+                                        id = request.id;
+                                    }
+                                }
+                            } else {
+                                System.out.println("Unknown message type: " +
+                                        message.getClass().getCanonicalName());
+                            }
+                        }
+                    }
+                    Message application = session.createObjectMessage(new ClientApplicationMessage(id, cache.get(id), quotations));
+                    producer.send(application);
                 }
-            }
 
-        } catch (JMSException e){
-            System.out.println(e);
+            } catch (JMSException e){
+                System.out.println(e);
+            }
         }
-        List<Quotation> quotations = getQuotations(quotationRequest.info);
-        ClientApplicationMessage clientApplicationMessage = new ClientApplicationMessage(quotationRequest.info,quotations);
-        return clientApplicationMessage;
     }
+
 }

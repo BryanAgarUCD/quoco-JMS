@@ -47,6 +47,7 @@ public class Receiver {
                         Message response = session.createObjectMessage(
                                 new QuotationResponseMessage(request.id, quotation));
                         producer.send(response);
+                        message.acknowledge();
                     }
                 } else {
                     System.out.println("Unknown message type: " +

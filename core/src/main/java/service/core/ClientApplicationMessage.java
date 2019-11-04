@@ -5,9 +5,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ClientApplicationMessage implements Serializable {
+    public long id;
     public ClientInfo clientInfo;
     public List<Quotation> quotations = new ArrayList<Quotation>();
-    public ClientApplicationMessage(ClientInfo clientInfo, List<Quotation> quotations) {
+    public ClientApplicationMessage(long id, ClientInfo clientInfo, List<Quotation> quotations) {
+        this.id = id;
         this.clientInfo = clientInfo;
         this.quotations = quotations;
     }
