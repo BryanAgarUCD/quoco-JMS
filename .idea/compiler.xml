@@ -6,15 +6,17 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
-        <module name="core" />
-        <module name="client" />
-        <module name="girlpower" />
         <module name="auldfellas" />
         <module name="dodgydrivers" />
+        <module name="broker" />
+        <module name="girlpower" />
+        <module name="core" />
+        <module name="client" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
       <module name="auldfellas" target="1.8" />
+      <module name="broker" target="1.8" />
       <module name="client" target="1.8" />
       <module name="core" target="1.8" />
       <module name="dodgydrivers" target="1.8" />

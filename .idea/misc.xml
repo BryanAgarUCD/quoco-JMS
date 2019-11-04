@@ -11,6 +11,7 @@
         <option value="$PROJECT_DIR$/client/pom.xml" />
         <option value="$PROJECT_DIR$/dodgydrivers/pom.xml" />
         <option value="$PROJECT_DIR$/girlpower/pom.xml" />
+        <option value="$PROJECT_DIR$/broker/pom.xml" />
       </list>
     </option>
   </component>
