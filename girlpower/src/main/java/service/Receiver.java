@@ -16,7 +16,7 @@ public class Receiver {
         if (args.length > 0) {
             host = args[0];
         }
-        System.out.println("Starting Receiver on: " +host);
+        System.out.println("Starting girlpower on: " +host);
 
         QuotationService service = new GPQService();
 
