@@ -47,6 +47,7 @@ public class Receiver {
                         Message response = session.createObjectMessage(
                                 new QuotationResponseMessage(request.id, quotation));
                         producer.send(response);
+                        System.out.println(response);
                         message.acknowledge();
                     }
                 } else {

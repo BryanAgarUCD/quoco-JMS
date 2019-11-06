@@ -48,6 +48,7 @@ public class Receiver {
                                 new QuotationResponseMessage(request.id, quotation));
                         producer.send(response);
                         message.acknowledge();
+                        System.out.println(response);
                     }
                 } else {
                     System.out.println("Unknown message type: " +

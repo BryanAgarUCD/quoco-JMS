@@ -77,33 +77,34 @@ public class Broker {
                 Topic topic = session.createTopic("RESPONSE");
                 MessageProducer producer = session.createProducer(topic);
                 MessageConsumer consumer = session.createConsumer(queue);
+                MessageProducer rebacker = session.createProducer(queue);
                 connection.start();
                 while (true) {
-                    long t1 = System.currentTimeMillis();
+                    long t1 = 0;
                     ArrayList<Quotation> quotations = new ArrayList<>();
                     long id = -1;
-                    while (true) {
-                        long t2 = System.currentTimeMillis();
-                        if ((t2 - t1) > 2000) {
-                            break;
-                        } else {
+                    while (t1!=3) {
                             Message message = consumer.receive();
                             if (message instanceof ObjectMessage) {
                                 Object content = ((ObjectMessage) message).getObject();
                                 if (content instanceof QuotationResponseMessage) {
                                     QuotationResponseMessage request = (QuotationResponseMessage) content;
+                                    System.out.println(request.id);
                                     if ((id == -1) || (id == request.id)) {
                                         message.acknowledge();
                                         quotations.add(request.quotation);
                                         id = request.id;
+                                        t1++;
+                                    } else {
+                                        rebacker.send(message);
                                     }
                                 }
                             } else {
                                 System.out.println("Unknown message type: " +
                                         message.getClass().getCanonicalName());
                             }
-                        }
                     }
+                    System.out.println(quotations);
                     Message application = session.createObjectMessage(new ClientApplicationMessage(id, cache.get(id), quotations));
                     producer.send(application);
                 }
